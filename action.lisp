@@ -35,7 +35,6 @@
 (defmethod execute ((system system) (action document-action))
   (document system))
 
-
 (defgeneric document (system)
   (:method ((system symbol))
    (document (find-system system)))
@@ -331,7 +330,7 @@ SYMBOL is expected to be an entry in *type-mapping* ."
   (add-data *collector* data))
 
 (defmacro do-forms ((var file) &body body)
-  (sysdef::with-gensyms (gstream geof gloop gstart)
+  (with-gensyms (gstream geof gloop gstart)
     `(let ((*package* *package*)
            (*current-declarations* (make-hash-table))
            (,geof (gensym)))

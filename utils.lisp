@@ -23,6 +23,10 @@
 
 (in-package :sysdef.document-action)
 
+(defmacro with-gensyms ((&rest vars) &body body)
+  `(let ,(mapcar (lambda (x) `(,x (gensym))) vars)
+     ,@body))
+
 (defun blankp (string)
   (zerop (length string)))
 
@@ -334,7 +338,8 @@ first value contains special variables and the second all other symbols"
     (let ((*print-pretty* t)
           (*print-right-margin* 60)
           (*package* package)
-          (*print-case* :downcase))
+          (*print-case* :downcase)
+          (*print-readably* nil))
       (prin1-to-string code))))
 
 ;; EOF

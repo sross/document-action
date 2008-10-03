@@ -503,9 +503,6 @@
                 (section ("Method Signatures")
                   (render-signatures doc))
 
-                (section ("Arguments and Values")
-                  (render-args-and-values args values))
-
                 (section ("Description")
                   (str (linkify-string (docstring doc))))
 
@@ -553,7 +550,7 @@
 (defmethod method-signature (method)
   (loop for var in (method-lambda-list method)
         for specializer on (method-specializers method)
-        collect (if specializer (list var (specializer-name (car specializer))) var)))
+        collect (if specializer (specializer-name (car specializer)) t)))
 
 (defun render-signatures (doc)
   (let ((gf (fdefinition (name-of doc)))
@@ -561,7 +558,6 @@
     (dolist (method (generic-function-methods gf))
       (html (:p (:tt (:strong (esc (string-downcase name)))) "&nbsp;"
              (:i (esc (format nil "~{~A~^ ~}" (mapcar 'as-human-lisp (method-signature method))))))))))
-
 
 ;; System Page
 (defmethod render-system-page ((system system) packages)
