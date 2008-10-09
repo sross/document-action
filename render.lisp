@@ -66,11 +66,13 @@
   (html (:i (if (null arglist)
                 (html " &lt;no arguments&gt; ")
                 (html (esc (let ((*print-case* :downcase))
-                             (format nil "~{~A~^ ~}" (plain-lambda-list arglist))))))
+                             (format nil "~{~A~^ ~}" arglist)))))
          "=> "  (html (esc (let ((*print-case* :downcase))
                              (if (null results)
                                  (format nil "<no results>")
                                  (format nil "~{~A~^, ~}" results))))))))
+
+
 
 (defun render-symbol-links (symbols &key (docs *package-docs*) (package *documented-package*))
   (let ((strings (mapcar #'(lambda (sym)
@@ -401,15 +403,15 @@
             (section ("Affected By" :oneline t) 
               (str (render-symbol-links
                     (remove name (append affected-by (doc-hint name :affected-by))))))
-          
-            (section ("See Also" :oneline t)
-              (str (render-symbol-links
-                    (remove name (append uses (doc-hint name :see-also))))))
 
+            (section ("Description") (str (linkify-string (docstring doc))))
+            
             (when-let (notes (doc-hint name :notes))
               (section ("Notes") (esc notes)))
 
-            (section ("Description") (str (linkify-string (docstring doc))))
+            (section ("See Also" :oneline t)
+              (str (render-symbol-links
+                    (remove name (append uses (doc-hint name :see-also))))))
 
             (section ("Source" :oneline t) (:a :id "clicky" :href "#" "Toggle")
               (:div :id "code" :style "display:none;"
@@ -445,10 +447,10 @@
 
                 (section ("Syntax")
                   (:tt (:strong (esc (string-downcase name)))) "&nbsp;"
-                  (render-arglist (plain-lambda-list (lambda-list-of doc)) (mapcar 'first values))
+                  (render-arglist (lambda-list-of doc) (mapcar 'first values)))
 
-                  (when-let (notes (doc-hint name :syntax))
-                    (section ("Notes") (esc notes))))
+                (when-let (notes (doc-hint name :syntax))
+                  (section ("Notes") (esc notes)))
 
                 (section ("Arguments and Values")
                   (render-args-and-values args values))
@@ -481,7 +483,6 @@
                  "$('a#clicky').click(function() { $('div#code').toggle('fast'); return false;});")))))))))
 
 
-
 ;; TODO: add default values of &optional variables in Arguments and Values
 (defmethod render-documentation ((system system) (doc generic-fuction-doc) &optional (package *documented-package*))
   (flet ((doc-hint (name hint)
@@ -498,8 +499,8 @@
 
                 (section ("Syntax")
                   (:tt (:strong (esc (string-downcase name)))) "&nbsp;"
-                  (render-arglist (plain-lambda-list (lambda-list-of doc)) (mapcar 'first values)))
-
+                  (render-arglist (lambda-list-of doc) (mapcar 'first values)))
+                
                 (section ("Method Signatures")
                   (render-signatures doc))
 
@@ -557,7 +558,8 @@
         (name (name-of doc)))
     (dolist (method (generic-function-methods gf))
       (html (:p (:tt (:strong (esc (string-downcase name)))) "&nbsp;"
-             (:i (esc (format nil "~{~A~^ ~}" (mapcar 'as-human-lisp (method-signature method))))))))))
+             (:i (esc (format nil "~@[~(~{~S~}~) ~]~{~A~^ ~}"  (method-qualifiers method)
+                              (mapcar 'as-human-lisp (method-signature method))))))))))
 
 ;; System Page
 (defmethod render-system-page ((system system) packages)

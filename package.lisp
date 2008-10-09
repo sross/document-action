@@ -2,7 +2,7 @@
 
 (defpackage :sysdef.document-action
   (:use :cl :sysdef :alexandria :cl-who :cl-ppcre)
-  (:export #:document-action)
+  (:export #:document-action #:document)
   (:import-from  #.(package-name 
                     (or (find-package "CLOS")
                         (find-package "PCL")

@@ -169,7 +169,7 @@
       (call-next-method)))
   
 
-(defmethod declaration-of ((doc function-doc))
+(defmethod declaration-of ((doc funcallable-doc))
   (let ((*current-declarations* (copy-declarations (slot-value doc 'declaration))))
     (merge-all-declarations (multiple-value-bind (body declarations docstring)
                                 (parse-body (cdddr (source-of doc)) :documentation t)
