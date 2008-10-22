@@ -271,7 +271,7 @@
                         (remove name (append uses (doc-hint name :see-also))))))
 
                 (when-let (notes (doc-hint name :notes))
-                  (section ("Notes") (esc notes)))
+                  (section ("Notes") (str notes)))
         
                 (section ("Source" :oneline t) (:a :id "clicky" :href "#" "Toggle")
                   (:div :id "code" :style "display:none;"
@@ -320,7 +320,7 @@
                     (remove name (append uses (doc-hint name :see-also))))))
 
             (when-let (notes (doc-hint name :notes))
-              (section ("Notes") (esc notes)))
+              (section ("Notes") (str notes)))
         
             (section ("Source" :oneline t) (:a :id "clicky" :href "#" "Toggle")
               (:div :id "code" :style "display:none;"
@@ -380,7 +380,7 @@
                     (remove name (append uses (doc-hint name :see-also))))))
 
             (when-let (notes (doc-hint name :notes))
-              (section ("Notes") (esc notes)))
+              (section ("Notes") (str notes)))
 
             (section ("Description") (str (linkify-string (docstring doc))))
             
@@ -407,7 +407,7 @@
             (section ("Description") (str (linkify-string (docstring doc))))
             
             (when-let (notes (doc-hint name :notes))
-              (section ("Notes") (esc notes)))
+              (section ("Notes") (str notes)))
 
             (section ("See Also" :oneline t)
               (str (render-symbol-links
@@ -450,7 +450,7 @@
                   (render-arglist (lambda-list-of doc) (mapcar 'first values)))
 
                 (when-let (notes (doc-hint name :syntax))
-                  (section ("Notes") (esc notes)))
+                  (section ("Notes") (str notes)))
 
                 (section ("Arguments and Values")
                   (render-args-and-values args values))
@@ -473,7 +473,7 @@
                         (remove name (append uses (doc-hint name :see-also))))))
 
                 (when-let (notes (doc-hint name :notes))
-                  (section ("Notes") (esc notes)))
+                  (section ("Notes") (str notes)))
         
                 (section ("Source" :oneline t) (:a :id "clicky" :href "#" "Toggle")
                   (:div :id "code" :style "display:none;"
@@ -522,7 +522,7 @@
                         (remove name (append uses (doc-hint name :see-also))))))
 
                 (when-let (notes (doc-hint name :notes))
-                  (section ("Notes") (esc notes)))
+                  (section ("Notes") (str notes)))
         
                 (section ("Source" :oneline t) (:a :id "clicky" :href "#" "Toggle")
                   (:div :id "code" :style "display:none;"
