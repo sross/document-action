@@ -23,9 +23,6 @@
 
 (in-package :sysdef.document-action)
 
-(defmacro with-gensyms ((&rest vars) &body body)
-  `(let ,(mapcar (lambda (x) `(,x (gensym))) vars)
-     ,@body))
 
 (defun blankp (string)
   (zerop (length string)))
@@ -112,7 +109,7 @@ purposes."
   (or (position type *all-symbol-defines*)
       (error "Invalid type ~S." type)))
 
-(defun name= (name1 name2)
+(defun doc-name= (name1 name2)
   "Two function names are equal if they are EQUAL - this covers
 symbols as well as general function names."
   (equal name1 name2))
@@ -133,7 +130,7 @@ then SETF names, otherwise sort alphabetically."
   "Comparions function used for sorting - sort by name and, if
 the names are the same, by DOC-TYPE-ORDINAL."
   (or (name< (name-of entry1) (name-of entry2))
-      (and (name= (name-of entry1) (name-of entry2))
+      (and (doc-name= (name-of entry1) (name-of entry2))
            (< (doc-type-ordinal (applicable-to entry1))
               (doc-type-ordinal (applicable-to entry2))))))
 
@@ -239,6 +236,7 @@ the names are the same, by DOC-TYPE-ORDINAL."
                                                        (format nil "~(~A-~A~)" symbol type))
                                   :type "html" :version :newest)
                    root))
+
 
 (defun package-path (name)
   (make-pathname :directory (remove-if-not (lambda (x) (or (alphanumericp x) (member x *valid-file-chars*)))

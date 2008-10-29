@@ -21,56 +21,89 @@
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 ;; TODO
 ;; What about catch tags?
 (in-package :sysdef.document-action)
 
 ;; Render Utilities
 (defmacro html (&body body)
-  `(with-html-output (*standard-output* *standard-output* )
+  `(with-html-output (*standard-output* *standard-output* :indent t)
      ,@body))
 
 (defmacro html-string (&body body)
   `(with-html-output-to-string (*standard-output*)
      ,@body))
 
-(defmacro with-doc-page ((&key title) &body body)
+(defmethod path-for ((doc doc) &optional (package *documented-package*))
+  (enough-namestring (document-path (name-of doc) (applicable-to doc) (package-root package))
+                     (package-root package)))
+
+(defmethod path-for ((doc null) &optional package)
+  "")
+
+(defun package-page (&optional (package *documented-package*))
+  (enough-namestring (document-path (package-name package)
+                                    :package
+                                    (package-root package))
+                     (package-root package)))
+
+
+(defun generate-navigation ()
+  (html (:div :class "line"
+         (:span :class "left" (:a :href (path-for *previous-doc*)
+                               (:img :alt "previous" :src "../mb-artifacts/images/previous.png")))
+         (:span :class "centre" (:span :class "in-package" (str (if *documented-package*
+                                                                    (format nil "(in-package ~A)"
+                                                                            (html-string (:a :href (package-page *documented-package*)
+                                                                                          (str (string-downcase (package-name *documented-package*))))))
+                                                                    ""))))
+         (:span :class "right" (:a :href (path-for *next-doc*)
+                                (:img :alt "next" :src "../mb-artifacts/images/next.png"))))))
+
+(defmacro with-doc-page ((&key title (include-navigation t)) &body body)
   `(with-html-output (*standard-output* *standard-output* :indent t :prologue t)
-     (:head
-      (:script :type "text/javascript" :src "../mb-artifacts/js/jquery-1.2.6.js")
-      (:title (esc (string ,title))))
-     (:body
-      ,@body)))
+     (:html :xmlns "http://www.w3.org/1999/xhtml"
+      (:head
+       (:meta :http-equiv "Content-Type" :content "text/html; charset=UTF-8")
+       (:script :type "text/javascript" :src "../mb-artifacts/js/jquery-1.2.6.js")
+       (:link :rel "stylesheet" :href "../mb-artifacts/styles/core.css" :type "text/css")
+       (:title (esc (string ,title))))
+      (:body
+       (when ,include-navigation (generate-navigation))
+       ,@body
+       (when ,include-navigation (generate-navigation))))))
 
 (defmacro dictionary-entry ((type name) &body body)
-  `(html (:div :class ,type
-          (:a :class "none" :name ,name)
-          ,@body)))
+  (once-only (type)
+    `(html (:div :class ,type
+            (:fieldset (:legend (:i (esc (string-upcase ,type))) "&nbsp;" (:strong (esc (string-upcase ,name))))
+             ,@body)))))
 
 (defmacro section ((title &key oneline) &body body)
   (once-only (title oneline)
     (with-gensyms (inner-html)
       `(let ((,inner-html (html-string ,@body)))
-         (html (:div :id (dashify ,title)
-                (:p (:strong (esc ,title) ":")
-                 (if (blankp ,inner-html)
-                     (html " None.")
-                     (html
-                       (if ,oneline
-                           (html " " (str ,inner-html))
-                           (html (:br) (:p (str ,inner-html)))))))))))))
+         (html (:div :class "section" :id (dashify ,title)
+                (:strong (esc ,title) ":")
+                (unless ,oneline (html (:p)))
+                (if (or (blankp ,inner-html) (string= ,inner-html " None."))
+                    (html " None." (:p))
+                    (html
+                      (if ,oneline
+                          (html " " (str ,inner-html) (:p))
+                          (html (str ,inner-html) (:p)))))))))))
 
 
-(defun render-arglist (arglist results)
+(defun render-arglist (arglist results &key (skip-results nil))
   (html (:i (if (null arglist)
                 (html " &lt;no arguments&gt; ")
                 (html (esc (let ((*print-case* :downcase))
                              (format nil "~{~A~^ ~}" arglist)))))
-         "=> "  (html (esc (let ((*print-case* :downcase))
-                             (if (null results)
-                                 (format nil "<no results>")
-                                 (format nil "~{~A~^, ~}" results))))))))
+         (unless skip-results
+           (html "=> "  (html (esc (let ((*print-case* :downcase))
+                                     (if (null results)
+                                         (format nil "<no results>")
+                                         (format nil "~{~A~^, ~}" results))))))))))
 
 
 
@@ -132,7 +165,6 @@
                 (render-link token docs package)
                 (princ token)))
           (html (:br)))))))
-
 
 
 (defun render-args-and-values (args values)
@@ -223,12 +255,12 @@
           ((and (> safety 2) (< speed 1)) :safe)
           (t nil))))
 
-(defun safety-image (decls)
-  (when-let (safeness (safeness decls))
+(defun safety-image (doc)
+  (when-let (safeness (safeness (declaration-of doc)))
     (html (:img :src (format nil "../mb-artifacts/images/~(~A~).png" safeness)))))
 
-(defun setfable-image (name)
-  (when (setfablep name)
+(defun setfable-image (doc)
+  (when (setfablep (name-of doc))
     (html (:img :src (format nil "../mb-artifacts/images/setfable.png")))))
     
 
@@ -242,10 +274,8 @@
           (with-doc-page (:title name)
             (dictionary-entry ("function" name)
               (html
-                (safety-image (declaration-of doc)) (setfable-image (name-of doc)) (:br)
-                (:p (:i "Function") "&nbsp;" (:strong (esc (string name))))
-                
-
+                (:div :class "right"
+                  (safety-image doc) (setfable-image doc))
                 (section ("Syntax")
                   (:tt (:strong (esc (string-downcase name)))) "&nbsp;"
                   (render-arglist (plain-lambda-list (lambda-list-of doc)) (mapcar 'first values)))
@@ -308,7 +338,6 @@
       (with-accessors ((name name-of)) doc
         (with-doc-page (:title name)
           (dictionary-entry ("Variable" name)
-            (:p (:i "Variable") "&nbsp;" (:strong (esc (string name))))
             (section ("Value Type" :oneline t) (str (declared-type doc)))
             (section ("Initial Value" :oneline t)
               (esc (initial-value-of doc)))
@@ -339,7 +368,7 @@
         (let ((precedence-list (mapcar 'class-name (mb.sysdef::class-precedence-list (find-class name)))))
         (with-doc-page (:title name)
           (dictionary-entry ((pretty-name-of doc) name)
-            (:p (:i (esc (pretty-name-of doc))) "&nbsp;" (:strong (esc (string name))))
+
             (section ("Class Precedence List")
               (str (render-symbol-links precedence-list)))
 
@@ -369,7 +398,6 @@
       (with-accessors ((name name-of)) doc
         (with-doc-page (:title name)
           (dictionary-entry ((pretty-name-of doc) name)
-            (:p (:i (esc (pretty-name-of doc))) "&nbsp;" (:strong (esc (string name))))
             
             (section ("Affected By" :oneline t) 
               (str (render-symbol-links
@@ -398,7 +426,6 @@
       (with-accessors ((name name-of)) doc
         (with-doc-page (:title name)
           (dictionary-entry ((pretty-name-of doc) name)
-            (:p (:i (esc (pretty-name-of doc))) "&nbsp;" (:strong (esc (string name))))
             
             (section ("Affected By" :oneline t) 
               (str (render-symbol-links
@@ -421,14 +448,25 @@
              "$('a#clicky').click(function() { $('div#code').toggle('fast'); return false;});")))))))
 
 
+(defmethod render-extra-info ((doc doc))
+  nil)
+
+;(defmethod render-extra-info ((doc function-doc))
+;  (html (render-arglist (plain-lambda-list (lambda-list-of doc)) nil :skip-results t)))
+
+
 (defmethod render-documentation ((system system) (doc package-doc) &optional (package *documented-package*))
   (with-accessors ((name name-of)) doc
-    (with-doc-page (:title name)
+    (with-doc-page (:title name :include-navigation nil)
       (dictionary-entry ((pretty-name-of doc) (string name))
+        (section ("Description")
+          (str (linkify-string (docstring doc))))
+
         (:p (:h3 "The " (esc (string name)) " Dictionary"))
         (dolist (entry (remove doc *package-docs*))
           (html (:p (:i (esc (pretty-name-of entry))) "&nbsp;"
-                 (:strong (render-link-to entry)))))))))
+                 (:strong (render-link-to entry))
+                 (render-extra-info entry))))))))
 
 
 ;; TODO: Refactor all of the renders
@@ -441,9 +479,6 @@
           (with-doc-page (:title name)
             (dictionary-entry ("Macro" name)
               (html
-                (safety-image (declaration-of doc)) (setfable-image (name-of doc)) (:br)
-                (:p (:i "Macro") "&nbsp;" (:strong (esc (string name))))
-                
 
                 (section ("Syntax")
                   (:tt (:strong (esc (string-downcase name)))) "&nbsp;"
@@ -491,12 +526,11 @@
       (multiple-value-bind (args values) (args-and-values doc)
         (with-accessors ((name name-of)) doc
           (with-doc-page (:title name)
-            (dictionary-entry ("function" name)
+            (dictionary-entry ("Generic Function" name)
               (html
-                (safety-image (declaration-of doc)) (setfable-image (name-of doc)) (:br)
-                (:p (:i "Generic Function") "&nbsp;" (:strong (esc (string name))))
+                (:div :class "right"
+                  (safety-image doc) (setfable-image doc))
                 
-
                 (section ("Syntax")
                   (:tt (:strong (esc (string-downcase name)))) "&nbsp;"
                   (render-arglist (lambda-list-of doc) (mapcar 'first values)))
@@ -564,9 +598,8 @@
 ;; System Page
 (defmethod render-system-page ((system system) packages)
   (let ((name (name-of system)))
-    (with-doc-page (:title name)
+    (with-doc-page (:title name :include-navigation nil)
       (dictionary-entry ("System" name)
-        (:p (:i "System") "&nbsp;" (:strong (esc (string (name-of system)))))
         (section ("Description")
           (esc (documentation system 'system)))
         (section ("Packages")
@@ -580,7 +613,3 @@
           (section ("Notes") (str notes)))))))
 
 
-#|
-(system-doc-hints (find-system :hunchentoot) (find-bpackage :sysdef-user))
-(document (find-system :mb.sysdef))
-|#

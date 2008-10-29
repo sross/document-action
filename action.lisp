@@ -57,17 +57,32 @@
        (member definition (ensure-list (applicable-to doc)))))
 
 
+(defvar *next-doc* nil)
+(defvar *previous-doc* nil)
+
 (defmethod generate-package-docs ((system system) (package package) (docs list))
   (format t "Generate package doc for package ~A with ~D symbols.~%" package (length docs))
   (let ((*documented-package* package)
         (*package-docs* docs)
         (*hints* (system-doc-hints system package)))
     (generate-merge-pages docs)
-    (dolist (doc docs)
+
+    ;; do non package docs
+    (loop :for remaining :on (remove-if (lambda (x) (typep x 'package-doc)) docs)
+          :for doc = (car remaining)
+          :and *previous-doc* = nil then doc
+          :for *next-doc* = (second remaining) :do
+          (let ((doc-path (document-path (name-of doc) (applicable-to doc) (package-root package))))
+            (ensure-directories-exist doc-path)
+            (with-open-file (*standard-output* doc-path :direction :output :if-exists :supersede)
+              (render-documentation system doc))))
+    ;; and do package docs (there should only be one, but just in case)
+    (dolist (doc (remove-if-not (lambda (x) (typep x 'package-doc)) docs))
       (let ((doc-path (document-path (name-of doc) (applicable-to doc) (package-root package))))
         (ensure-directories-exist doc-path)
         (with-open-file (*standard-output* doc-path :direction :output :if-exists :supersede)
           (render-documentation system doc))))))
+    
 
 
 (defun generate-merge-pages (docs)
