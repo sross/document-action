@@ -1,7 +1,7 @@
 (in-package :sysdef-user)
 
 (define-system :document-action (serial-system)
-  (:version 0 1 5)
+  (:version 0 1 7)
   (:components "package" "utils" "action" "render")
   (:needs :alexandria :cl-who :cl-ppcre)
   (:preferences "~/.mudballs.prefs"))

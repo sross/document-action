@@ -173,13 +173,17 @@
   (destructuring-bind (op name arglist . body) (source-of doc)
     `(,op ,name ,arglist ,@(parse-body body :documentation t))))
 
+(defun unknown-source-p (doc)
+  (eql (slot-value doc 'source) :unknown))
+
 (defmethod lambda-list-of ((doc funcallable-doc))
-  (if (eql (source-of doc) :unknown)
+  (if (unknown-source-p doc)
       (function-lambda-list (name-of doc))
       (third (source-of doc))))
 
+
 (defmethod source-of ((doc funcallable-doc))
-  (if (eql (call-next-method) :unknown)
+  (if (unknown-source-p doc)
       (list 'defun (name-of doc) '(:unknown) :unknown)
       (call-next-method)))
   
@@ -202,14 +206,12 @@
 
 (defclass method-doc (funcallable-doc) ())
 
-(defun unknown-source-p (doc)
-  (eql (slot-value doc 'source) :unknown))
 
 (defun has-specializer-p (gf-doc)
   (symbolp (third (source-of gf-doc))))
 
 (defmethod lambda-list-of ((doc generic-fuction-doc))
-  (cond ((unknown-source-p doc) '(:unknown))
+  (cond ((unknown-source-p doc) (function-lambda-list (name-of doc)))
         ((has-specializer-p doc) (fourth (source-of doc)))
         (t (third (source-of doc)))))
 

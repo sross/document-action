@@ -459,14 +459,17 @@
   (with-accessors ((name name-of)) doc
     (with-doc-page (:title name :include-navigation nil)
       (dictionary-entry ((pretty-name-of doc) (string name))
+        (section ("Package Use List")
+          (esc (format nil "~{~A~^, ~}" (mapcar 'package-name (package-use-list package)))))
         (section ("Description")
           (str (linkify-string (docstring doc))))
 
-        (:p (:h3 "The " (esc (string name)) " Dictionary"))
-        (dolist (entry (remove doc *package-docs*))
-          (html (:p (:i (esc (pretty-name-of entry))) "&nbsp;"
-                 (:strong (render-link-to entry))
-                 (render-extra-info entry))))))))
+        (let ((title (with-html-output-to-string (*standard-output*) "The " (str name) " Dictionary")))
+          (section (title)
+            (dolist (entry (remove doc *package-docs*))
+              (html (:p (:i (esc (pretty-name-of entry))) "&nbsp;"
+                     (:strong (render-link-to entry))
+                     (render-extra-info entry))))))))))
 
 
 ;; TODO: Refactor all of the renders
